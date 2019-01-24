@@ -4,4 +4,10 @@ Teaching resources for the MSc Global Air Pollution & Health: Management and Sci
 
 ## Air Quality Data Science
 
+* Linking geographic data
+* Data tutorial
+
 ## Air Quality Modelling
+
+* 
+* 
