@@ -1,2 +1,7 @@
-# MScGAQ
-My teaching resources for the MSc in Global Air Pollution &amp; Health
+# MSc Global Air Pollution & Health: Management and Science
+
+Teaching resources for the MSc Global Air Pollution & Health: Management and Science.
+
+## Air Quality Data Science
+
+## Air Quality Modelling
