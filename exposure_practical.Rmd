@@ -1,1 +1,176 @@
+---
+title: "Dynamic exposure modelling practical"
+output: html_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_file ="exposure_practical.html") }) 
+---
 
+This code will take you step-by-step through undertaking a simple exposure assessment of a journey between two locations in London. We will calculate a walking route, intersect the route with some modelled air quality, and then calculate some statistics and make a map. 
+
+You should open RStudio and copy+paste the code chunks (grey boxes of code) from below into your own script as you go through the pratical. Feel free to make changes if you want to - it's the best way to learn. 
+
+At the end of the document there is a short task for you to try on your own; once you have done it please send your result and the code you used to make it, to [james.d.smith@kcl.ac.uk](mailto:james.d.smith@kcl.ac.uk)
+
+
+## Set-up
+
+Start with a clean R environment, and load some libraries that we are going to need. If a library doesn't load ('activate'), it's probably because you don't have it installed. You can run commands in the Console such as ( `install.packages('raster')`  ) to fix that.
+
+```{r, warning=FALSE, message=FALSE}
+
+rm(list = ls())    # This clear the environment of any variables, old plots, that kind of thing.
+
+library(raster)    # We will need this to deal with the air quality data
+library(stplanr)   # We will use this to calculate routes between places
+library(tidyverse) # The tidyverse is a group of R packages that are useful in general data analysis
+library(sf)        # SF stands for 'simple features', it's a useful package for working with spatial data
+
+```
+
+## Routing
+
+#### Decide on a route
+We first need to decide on a route to calculate the exposure for. It needs to start and end within London, as the air quality data we are going to use only covers that area. For this example we are going to calculate the route and exposure from this building at Waterloo, to the Brewdog pub in Soho. It's about 1.5km away. I have used Google Maps to find the latitude and longitude of these places, and put them in for you.
+
+```{r, warning=FALSE, message=FALSE}
+
+start    <- c(-0.112327, 51.505747)
+end      <- c(-0.137143, 51.515080)
+
+```
+
+
+#### Calculate the route
+We now use these start and end variables, within a function called `route_osrm()` which is from the `stplanr` R package. This package was developed to allow interaction between R, and the OpenStreetMap routing system. We can use it to say 'tell me how to get from one location to another'. Only a driving mode is available.
+
+```{r, warning=FALSE, message=FALSE}
+route <- route_osrm(start, end)  # This gets the route
+
+route  <- st_as_sf(route)        # Change the route from a 'sp' object to 'sf'.
+```
+
+If you wanted to explore other transport modes you could look at using the function `route_transportapi_public()` instead of `route_osrm()`. It allows you to add an additional parameter of `mode = ` (foot, tube, walk, bus).
+
+We now have a route between the two locations stored as a variable called `route`. If you type `route` into your R console you should see something like this. Note what each of the fields you see is telling you.
+
+```{r, warning=FALSE, message=FALSE}
+route
+```
+
+#### Plot the route
+You can make a very basic map of the route using the `ggplot2` package n.b. there are many others ways of doing this. 
+
+```{r, warning=FALSE, message=FALSE}
+
+ggplot() +
+  geom_sf(data = route) +
+  ggtitle('Route between Franklin-Wilkins Building and Brewdog')
+
+```
+
+## Air quality
+
+#### Import air quality
+
+So we have a route between the two locations, but now we need some air quality data. In 2016 the modelling team undertook a large project for the Greater London Authority (The GLA) to produce maps and data on air quality in London. The outputs are available online for public use, and those are the data we are going to use. [Have a quick read through this webpage before we continue](https://data.london.gov.uk/dataset/london-atmospheric-emissions-inventory-2013).
+
+Download the ZIP files called '4.1. Concentrations LAEI 2013 Update', extract it, and put the files somewhere sensible on your computer. Now import the 2013 NO2 layer like this. You will need to change the path so that it is specific to your computer.
+
+```{r, warning=FALSE, message=FALSE}
+no2_2013     <- raster('C:/Users/stwb3498/Downloads/4.1. Concentrations LAEI 2013 Update/4.1. Concentrations LAEI 2013 Update/2013/ASCII/PostLAEI2013_2013_NO2.asc')
+```
+
+Type `no2_2013' into your console and you will be able to see information about the raster file you have imported.
+
+```{r, warning=FALSE, message=FALSE}
+no2_2013
+```
+
+You will see above that the `coord.ref` field of the raster object is empty (NA) - Hopefully you remember how important coordinate reference systems (CRS's) are from my lecture in the Air Quality Data Analysis module! The field is empty because although R has succesfully imported the data, it does not know what coordinate reference system it is. From experience I know that the system in use is British National Grid, which is CRS code 27700. So we tell R that.
+
+```{r, warning=FALSE, message=FALSE}
+
+latlong                 <- "+init=epsg:4326"
+ukgrid                  <- "+init=epsg:27700"
+
+proj4string(no2_2013)   <- CRS(ukgrid)
+
+```
+
+#### Plot air quality
+
+You can plot your NO2 2013 raster object using the `plot()` command. As with many things in R, there are often multiple commands to do similar things, each achieving slightly different results. For example we could also have used the `rasterVis` package to view the data. Much of how to do things in R is personal preference.
+
+```{r, warning=FALSE, message=FALSE}
+plot(no2_2013)
+```
+
+If you wanted to add your `route` to the same map, you could do something like this.
+
+```{r, warning=FALSE, message=FALSE}
+
+plot(no2_2013)                                      # Plot the NO2
+plot(st_geometry(st_transform(route,27700)), add=T) # transform the route to CRS 27700, extract the geometry', and add it to the above plot
+
+```
+
+It's a little small, but you can figure out how to improve that later.
+
+## Extract concentrations for the route
+
+#### Preparing the route
+
+We have to decide how our exposure is going to be calculated. Do we want the average concentration along the route? The maximum? The minimum? The London Hybrid Exposure Model has temporal scale of one minute, so we'll copy that.
+
+So we are going to split the line that represents our journey into a point per minute (`round(route$duration/60,0)`). We also need to change our `route` into the same CRS as the air quality `no2_2013` data.
+
+```{r, warning=FALSE, message=FALSE}
+
+route                 <- st_transform(route, 27700)                     # Change the route CRS to the same as the raster
+
+route_points          <- st_line_sample(route,
+                                round(route$duration/60,0),
+                                type = 'regular')                       # sample regular points along the route
+
+route_points          <- st_cast(route_points, "POINT")                 # Turn multipoint object to points
+
+route_points          <- st_sf(minute = 1:round(route$duration/60,0),   # Add the minutes as a field of the object
+                               geom = route_points)
+```
+
+Let's plot out the `route` data and see what it looks like now.
+
+```{r, warning=FALSE, message=FALSE}
+
+ggplot() +
+  geom_sf(data = route_points) +
+  ggtitle('Route between Franklin-Wilkins Building and Brewdog')
+
+```
+
+#### Extract concentrations
+
+For each point of the route we are now going to find out the NO2 concentration at that location using the `extract()` function from the `raster` library. We need to convert the points from a sf type to a sp type 'on the fly', as the `extract()` function does not work with sf objects yet.
+
+```{r, warning=FALSE, message=FALSE}
+
+route_points$no2 <- raster::extract(no2_2013,
+                                    as(route_points, 'Spatial')@coords)
+
+```
+
+The data now looks like this - nice!
+
+```{r, warning=FALSE, message=FALSE}
+route_points
+```
+
+## Microenvironmental modelling
+
+Finally, the concentrations we have extracted from the air quality model are representative of air outdoors at the locations. But if the person was inside a vehicle, for example a car, then the air would be different (but influenced by) the air outside the car. There are different ways of modelling this difference. A simple way is to use an indoor/outdoor (I/O) ratio. A recent literature review estimated that NO2 concentrations inside vehicles are typically around 77% of the outdoor air. So if we wanted, we could reflect this in our exposure model.
+
+```{r}
+
+route_points$incar_no2 <- route_points
+
+```
