@@ -5,16 +5,15 @@ knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_file ="exposure_practical.html") }) 
 ---
 
-This code will take you step-by-step through undertaking a simple exposure assessment of a journey between two locations in London. We will calculate a walking route, intersect the route with some modelled air quality, and then calculate some statistics and make a map. 
+This code will take you step-by-step through undertaking a simple exposure assessment of a journey between two locations in London. We will calculate a walking route, intersect the route with some modelled air quality, calculate the exposure on the route, make a graph of the results. 
 
-You should open RStudio and copy+paste the code chunks (grey boxes of code) from below into your own script as you go through the pratical. Feel free to make changes if you want to - it's the best way to learn. 
+You should open RStudio and copy+paste the code chunks (grey boxes of code) from below into your own script as you go through the pratical. Feel free to make changes if you want to - it's the best way to learn. I suggest you make notes in your own script as you go to refer to later. You can make notes in R by putting a hashtag before them.
 
-At the end of the document there is a short task for you to try on your own; once you have done it please send your result and the code you used to make it, to [james.d.smith@kcl.ac.uk](mailto:james.d.smith@kcl.ac.uk)
-
+At the end of the document there is a short task for you to try on your own; once you have done it please send your result and the code you used to make it, to [james.d.smith@kcl.ac.uk](mailto:james.d.smith@kcl.ac.uk). This is not assessed, but I will send you back some feedback and tips on it.
 
 ## Set-up
 
-Start with a clean R environment, and load some libraries that we are going to need. If a library doesn't load ('activate'), it's probably because you don't have it installed. You can run commands in the Console such as ( `install.packages('raster')`  ) to fix that.
+Start with a clean R environment, and load some libraries (sometimes called 'packages') that we are going to need. If a library doesn't load ('activate'), it's probably because you don't have it installed. You can run commands in the Console such as ( `install.packages('raster')`  ) to fix that. You can think of libraries/packages as add-ons that enhance the things R can do.
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -30,7 +29,7 @@ library(sf)        # SF stands for 'simple features', it's a useful package for 
 ## Routing
 
 #### Decide on a route
-We first need to decide on a route to calculate the exposure for. It needs to start and end within London, as the air quality data we are going to use only covers that area. For this example we are going to calculate the route and exposure from this building at Waterloo, to the Brewdog pub in Soho. It's about 1.5km away. I have used Google Maps to find the latitude and longitude of these places, and put them in for you.
+We first need to decide on a route to calculate the exposure for. It needs to start and end within London, as the air quality data we are going to use only covers that area. For this example we are going to calculate the route and exposure from this building at Waterloo, to the Brewdog pub in Soho. It's about 1.5km away. I have used Google Maps to find the latitude and longitude of these places, and put them in for you below.
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -41,7 +40,7 @@ end      <- c(-0.137143, 51.515080)
 
 
 #### Calculate the route
-We now use these start and end variables, within a function called `route_osrm()` which is from the `stplanr` R package. This package was developed to allow interaction between R, and the OpenStreetMap routing system. We can use it to say 'tell me how to get from one location to another'. Only a driving mode is available.
+We now use these start and end variables, within a function called `route_osrm()` which is from the `stplanr` R package. This package was developed to allow interaction between R, and the OpenStreetMap routing system. We can use it to say 'tell me how to get from one location to another'. Only a driving mode is available by default.
 
 ```{r, warning=FALSE, message=FALSE}
 route <- route_osrm(start, end)  # This gets the route
@@ -51,14 +50,14 @@ route  <- st_as_sf(route)        # Change the route from a 'sp' object to 'sf'.
 
 If you wanted to explore other transport modes you could look at using the function `route_transportapi_public()` instead of `route_osrm()`. It allows you to add an additional parameter of `mode = ` (foot, tube, walk, bus).
 
-We now have a route between the two locations stored as a variable called `route`. If you type `route` into your R console you should see something like this. Note what each of the fields you see is telling you.
+We now have a route between the two locations stored as a variable called `route`. If you type `route` into your R console you should see something like this. Have a look at what it shows, and what each field is telling you.
 
 ```{r, warning=FALSE, message=FALSE}
 route
 ```
 
 #### Plot the route
-You can make a very basic map of the route using the `ggplot2` package n.b. there are many others ways of doing this. 
+You can make a very basic map of the route using the `ggplot2` package like below. Note there are many others ways of doing this. 
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -74,19 +73,19 @@ ggplot() +
 
 So we have a route between the two locations, but now we need some air quality data. In 2016 the modelling team undertook a large project for the Greater London Authority (The GLA) to produce maps and data on air quality in London. The outputs are available online for public use, and those are the data we are going to use. [Have a quick read through this webpage before we continue](https://data.london.gov.uk/dataset/london-atmospheric-emissions-inventory-2013).
 
-Download the ZIP files called '4.1. Concentrations LAEI 2013 Update', extract it, and put the files somewhere sensible on your computer. Now import the 2013 NO2 layer like this. You will need to change the path so that it is specific to your computer.
+Download the ZIP files called '4.1. Concentrations LAEI 2013 Update', extract the folder, and put the files somewhere sensible on your computer. Now import the filed called `PostLAEI2013_2013_NO2.asc` like this (You will need to change the path so that it is specific to your computer).
 
 ```{r, warning=FALSE, message=FALSE}
-no2_2013     <- raster('C:/Users/stwb3498/Downloads/4.1. Concentrations LAEI 2013 Update/4.1. Concentrations LAEI 2013 Update/2013/ASCII/PostLAEI2013_2013_NO2.asc')
+no2_2013     <- raster('C:/Users/james/Downloads/4.1. Concentrations LAEI 2013 Update/4.1. Concentrations LAEI 2013 Update/2013/ASCII/PostLAEI2013_2013_NO2.asc')
 ```
 
-Type `no2_2013' into your console and you will be able to see information about the raster file you have imported.
+Type `no2_2013` into your console and you will be able to see information about the raster file you have imported.
 
 ```{r, warning=FALSE, message=FALSE}
 no2_2013
 ```
 
-You will see above that the `coord.ref` field of the raster object is empty (NA) - Hopefully you remember how important coordinate reference systems (CRS's) are from my lecture in the Air Quality Data Analysis module! The field is empty because although R has succesfully imported the data, it does not know what coordinate reference system it is. From experience I know that the system in use is British National Grid, which is CRS code 27700. So we tell R that.
+You will see above that the `coord.ref` field of the raster object is empty (NA) - Hopefully you remember how important coordinate reference systems (CRS's) are from my lecture in the Air Quality Data Analysis module! The field is empty because although R has succesfully imported the data, it does not know what coordinate reference system it is. From experience I know that the system for this dataset is British National Grid, which is CRS code 27700. Most UK data is either codes 4326 or 27700. The code below now assigns the CRS of 27700 to the `no2_2013` object.
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -99,13 +98,13 @@ proj4string(no2_2013)   <- CRS(ukgrid)
 
 #### Plot air quality
 
-You can plot your NO2 2013 raster object using the `plot()` command. As with many things in R, there are often multiple commands to do similar things, each achieving slightly different results. For example we could also have used the `rasterVis` package to view the data. Much of how to do things in R is personal preference.
+You can plot your `no2_2013` raster object using the `plot()` command. As with many things in R, there are often multiple commands to do similar things, each achieving slightly different results. For example we could also have used the `rasterVis` package to view the data. Much of how to do things in R is personal preference.
 
 ```{r, warning=FALSE, message=FALSE}
 plot(no2_2013)
 ```
 
-If you wanted to add your `route` to the same map, you could do something like this.
+If you wanted to add your `route` to the same map, you could do something like this. It's a little small, but you can figure out how to improve that later.
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -114,15 +113,13 @@ plot(st_geometry(st_transform(route,27700)), add=T) # transform the route to CRS
 
 ```
 
-It's a little small, but you can figure out how to improve that later.
-
 ## Extract concentrations for the route
 
 #### Preparing the route
 
-We have to decide how our exposure is going to be calculated. Do we want the average concentration along the route? The maximum? The minimum? The London Hybrid Exposure Model has temporal scale of one minute, so we'll copy that.
+We have to decide how our exposure is going to be calculated. Do we want the average concentration along the route? The maximum? The minimum? The London Hybrid Exposure Model has temporal scale of one minute, so we'll calculate it on a minute by minute basis, then we can decide after whether to take the mean or some other measure.
 
-So we are going to split the line that represents our journey into a point per minute (`round(route$duration/60,0)`). We also need to change our `route` into the same CRS as the air quality `no2_2013` data.
+If we want to calculate exposure per minute, we are going to need to split the line that represents our journey into a point per minute (`round(route$duration/60,0)`). We also need to change our `route` into the same CRS as the air quality `no2_2013` data.
 
 ```{r, warning=FALSE, message=FALSE}
 
