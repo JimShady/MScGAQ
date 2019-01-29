@@ -5,7 +5,7 @@ knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_file ="exposure_practical.html") }) 
 ---
 
-This code will take you step-by-step through undertaking a simple exposure assessment of a journey between two locations in London. We will calculate a walking route, intersect the route with some modelled air quality, calculate the exposure on the route, make a graph of the results. 
+This code will take you step-by-step through undertaking a simple exposure assessment of a journey between two locations in London. We will calculate a walking route, intersect the route with some modelled air quality, calculate the exposure on the route, and make a graph of the results. 
 
 You should open RStudio and copy+paste the code chunks (grey boxes of code) from below into your own script as you go through the pratical. Feel free to make changes if you want to - it's the best way to learn. I suggest you make notes in your own script as you go to refer to later. You can make notes in R by putting a hashtag before them.
 
@@ -17,12 +17,12 @@ Start with a clean R environment, and load some libraries (sometimes called 'pac
 
 ```{r, warning=FALSE, message=FALSE}
 
-rm(list = ls())    # This clear the environment of any variables, old plots, that kind of thing.
+rm(list = ls())                   # This clear the environment of any variables, old plots, that kind of thing.
 
-library(raster)    # We will need this to deal with the air quality data
-library(stplanr)   # We will use this to calculate routes between places
-library(tidyverse) # The tidyverse is a group of R packages that are useful in general data analysis
-library(sf)        # SF stands for 'simple features', it's a useful package for working with spatial data
+library(raster,    quietly =TRUE)   # We will need this to deal with the air quality data
+library(stplanr,   quietly =TRUE)   # We will use this to calculate routes between places
+library(tidyverse, quietly =TRUE)   # The tidyverse is a group of R packages that are useful in general data analysis
+library(sf,        quietly =TRUE)   # SF stands for 'simple features', it's a useful package for working with spatial data
 
 ```
 
@@ -43,21 +43,21 @@ end      <- c(-0.137143, 51.515080)
 We now use these start and end variables, within a function called `route_osrm()` which is from the `stplanr` R package. This package was developed to allow interaction between R, and the OpenStreetMap routing system. We can use it to say 'tell me how to get from one location to another'. Only a driving mode is available by default.
 
 ```{r, warning=FALSE, message=FALSE}
-route <- route_osrm(start, end)  # This gets the route
+route <- route_osrm(from=start, to=end)  # This gets the route
 
-route  <- st_as_sf(route)        # Change the route from a 'sp' object to 'sf'.
+route  <- st_as_sf(route)                # Change the route from a 'sp' object to 'sf'.
 ```
 
-If you wanted to explore other transport modes you could look at using the function `route_transportapi_public()` instead of `route_osrm()`. It allows you to add an additional parameter of `mode = ` (foot, tube, walk, bus).
+If you wanted to explore other transport modes you could look at using the function `route_transportapi_public()` instead of `route_osrm()`. It allows you to add an additional parameter of `mode = "__modehere__` where `__modehere` is one of  'bus', 'train' or 'tube'. I believe there are some functions within the `stplanr` library that also does walking routing, but you'll need to look at that yourselves.
 
-We now have a route between the two locations stored as a variable called `route`. If you type `route` into your R console you should see something like this. Have a look at what it shows, and what each field is telling you.
+Once the above code has run, you will have a route between FWB and Brewdog stored as a variable called `route`. If you type `route` into your R console you should see something like this. Have a look at what it shows, and what each field is telling you.
 
 ```{r, warning=FALSE, message=FALSE}
 route
 ```
 
 #### Plot the route
-You can make a very basic map of the route using the `ggplot2` package like below. Note there are many others ways of doing this. 
+You can make a very basic map of the route using the `ggplot2` package as below. Note that there are many others ways of doing this. 
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -71,12 +71,12 @@ ggplot() +
 
 #### Import air quality
 
-So we have a route between the two locations, but now we need some air quality data. In 2016 the modelling team undertook a large project for the Greater London Authority (The GLA) to produce maps and data on air quality in London. The outputs are available online for public use, and those are the data we are going to use. [Have a quick read through this webpage before we continue](https://data.london.gov.uk/dataset/london-atmospheric-emissions-inventory-2013).
+No that we have a route between the two locations we need some air quality data. In 2016 the modelling team undertook a large project for the [Greater London Authority](https://en.wikipedia.org/wiki/Greater_London_Authority) (The GLA) to produce maps and data on air quality in London. The outputs are available online for public use, and those are the data we are going to use. [Have a quick read through this webpage before we continue](https://data.london.gov.uk/dataset/london-atmospheric-emissions-inventory-2013).
 
-Download the ZIP files called '4.1. Concentrations LAEI 2013 Update', extract the folder, and put the files somewhere sensible on your computer. Now import the filed called `PostLAEI2013_2013_NO2.asc` like this (You will need to change the path so that it is specific to your computer).
+Once you have looked through the site, download the ZIP file called '4.1. Concentrations LAEI 2013 Update', extract the folder, and put the folder and files somewhere sensible on your computer. Now import the filed called `PostLAEI2013_2013_NO2.asc` like this (You will need to change the path so that it is specific to your computer).
 
 ```{r, warning=FALSE, message=FALSE}
-no2_2013     <- raster('C:/Users/james/Downloads/4.1. Concentrations LAEI 2013 Update/4.1. Concentrations LAEI 2013 Update/2013/ASCII/PostLAEI2013_2013_NO2.asc')
+no2_2013     <- raster('C:/Users/stwb3498/Downloads/4.1. Concentrations LAEI 2013 Update/4.1. Concentrations LAEI 2013 Update/2013/ASCII/PostLAEI2013_2013_NO2.asc')
 ```
 
 Type `no2_2013` into your console and you will be able to see information about the raster file you have imported.
@@ -85,7 +85,7 @@ Type `no2_2013` into your console and you will be able to see information about 
 no2_2013
 ```
 
-You will see above that the `coord.ref` field of the raster object is empty (NA) - Hopefully you remember how important coordinate reference systems (CRS's) are from my lecture in the Air Quality Data Analysis module! The field is empty because although R has succesfully imported the data, it does not know what coordinate reference system it is. From experience I know that the system for this dataset is British National Grid, which is CRS code 27700. Most UK data is either codes 4326 or 27700. The code below now assigns the CRS of 27700 to the `no2_2013` object.
+You will see above that the `coord.ref` field of the raster object is empty (NA). Hopefully you remember how important coordinate reference systems (CRS's) are from my lecture in the Air Quality Data Analysis module! The field is empty because although R has succesfully imported the data, it does not know what coordinate reference system it is. From experience I know that the system for this dataset is British National Grid, which is CRS code 27700. Most UK data is either codes 4326 or 27700. The R code below assigns the CRS of 27700 to the `no2_2013` object.
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -128,6 +128,11 @@ route                 <- st_transform(route, 27700)                     # Change
 route_points          <- st_line_sample(route,
                                 round(route$duration/60,0),
                                 type = 'regular')                       # sample regular points along the route
+```
+
+Check you understand what the above commands have done before continuining.
+
+```{r, warning=FALSE, message=FALSE}
 
 route_points          <- st_cast(route_points, "POINT")                 # Turn multipoint object to points
 
@@ -162,12 +167,27 @@ The data now looks like this - nice!
 route_points
 ```
 
-## Microenvironmental modelling
+At this point we could make a graph of the exposure during the journey
 
-Finally, the concentrations we have extracted from the air quality model are representative of air outdoors at the locations. But if the person was inside a vehicle, for example a car, then the air would be different (but influenced by) the air outside the car. There are different ways of modelling this difference. A simple way is to use an indoor/outdoor (I/O) ratio. A recent literature review estimated that NO2 concentrations inside vehicles are typically around 77% of the outdoor air. So if we wanted, we could reflect this in our exposure model.
+```{r, warning=FALSE, message=FALSE}
 
-```{r}
-
-route_points$incar_no2 <- route_points
+ggplot(route_points, aes(minute, no2)) + 
+  geom_path() +
+  ggtitle('Exposure between Franklin-Wilkins Building and Brewdog')
 
 ```
+
+## Microenvironmental modelling
+
+Finally, the concentrations we have extracted from the air quality model are representative of air outdoors at the point locations. But if the person was inside a vehicle, for example a car, then the air would be different (but influenced by) the air outside the car. There are different ways of modelling this difference between the outdoor air and the indoor (in-car) air. A simple way is to use an indoor/outdoor (I/O) ratio. A recent literature review estimated that NO2 concentrations inside vehicles are typically around 77% of the outdoor air. So if we wanted, we could reflect this in our exposure model by multiplying the outdoor concentrations by 0.77.
+
+```{r, warning=FALSE, message=FALSE}
+
+route_points$incar_no2 <- route_points$no2 * 0.77
+
+```
+
+If you were going to look at different transport modes, you would need to look for different ratios of course.
+
+## Make a map
+
