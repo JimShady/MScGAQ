@@ -213,9 +213,11 @@ Note the line ` theme(panel.background = element_rect()) ` in the code above. Th
 
 ## Task / homework
 
-I would like you to make and send to me by 5pm tomorrow, a PNG file that is as similar to the below as you can manage. If you want to work in pairs, as a group, or even as a whole class that's fine; this isn't assessed.
+I would like you to make and send to me by 5pm tomorrow, a PNG file that is as similar to the below as you can manage, aswell as the `ggplot()` code you used to create it. If you want to work in pairs, as a group, or even as a whole class that's fine; this isn't assessed.
 
 ```{r, echo=F}
+# Ah you found this 'solution' code did you? Well done. Kind of. You can copy it if you like, but it's better for your learning if you don't.
+
 ggplot() +
   geom_sf(data=no2_2013_crop, aes(fill = PostLAEI2013_2013_NO2), colour=NA) + 
   scale_fill_distiller(palette = "Spectral", name = 'NO2') +
@@ -226,7 +228,7 @@ ggplot() +
         panel.border     = element_rect(colour='black', fill=NA),
         axis.text        = element_blank(),
         axis.ticks       = element_blank(),
-        legend.position  = c(0.1,0.2),
+        legend.position  = c(0.11,0.23),
         legend.box.background = element_rect(colour = "black"),
         plot.title = element_text(hjust = 0.5))
 ```
