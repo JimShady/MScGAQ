@@ -48,7 +48,7 @@ route <- route_osrm(from=start, to=end)  # This gets the route
 route  <- st_as_sf(route)                # Change the route from a 'sp' object to 'sf'.
 ```
 
-If you wanted to explore other transport modes you could look at using the function `route_transportapi_public()` instead of `route_osrm()`. It allows you to add an additional parameter of `mode = "__modehere__` where `__modehere` is one of  'bus', 'train' or 'tube'. I believe there are some functions within the `stplanr` library that also does walking routing, but you'll need to look at that yourselves.
+If you wanted to explore other transport modes you could look at using the function `route_transportapi_public()` instead of `route_osrm()`. It allows you to add an additional parameter of `mode = "__modehere__` where `__modehere__` is one of  'bus', 'train' or 'tube'. I believe there are some functions within the `stplanr` library that also do walking routing, but you'll need to look at that yourselves.
 
 Once the above code has run, you will have a route between FWB and Brewdog stored as a variable called `route`. If you type `route` into your R console you should see something like this. Have a look at what it shows, and what each field is telling you.
 
@@ -191,3 +191,44 @@ If you were going to look at different transport modes, you would need to look f
 
 ## Make a map
 
+Earlier we make a quick map of NO2 concentrations in London, and plotted the route on it. Let's try and make an exposure map now, using the ``ggplot2` package again. We will plot out the NO2 data for our area, and put the points on top of that.
+
+```{r, warning=FALSE, message=FALSE}
+
+no2_2013_crop     <- crop(no2_2013, extent(route) + 100) # For our map we only need the NO2 data for a small area, not the whole of London
+
+no2_2013_crop     <- rasterToPolygons(no2_2013_crop)      # Converting the raster file to polygons so that we can use this data with the ggplot2 library
+
+no2_2013_crop     <- st_as_sf(no2_2013_crop)              # Converting the sp polygons to a sf polygons type, again, it's better for plotting with ggplot2 this way
+
+ggplot() +
+  geom_sf(data=no2_2013_crop, aes(fill = PostLAEI2013_2013_NO2), colour=NA) +
+  geom_sf(data=route_points, colour='white') +
+  ggtitle('Exposure map between FWB and Brewdog, Soho') +
+  theme(panel.background = element_rect())
+  
+```
+
+Note the line ` theme(panel.background = element_rect()) ` in the code above. There are various options that you can use here to change the look and feel of your map. You should use the [ggplot2 reference manual](https://ggplot2.tidyverse.org/reference/theme.html) to find more details. We're not expecting you to be an expert at any of this during the module, but some idea would be good.
+
+## Task / homework
+
+I would like you to make and send to me by 5pm tomorrow, a PNG file that is as similar to the below as you can manage. If you want to work in pairs, as a group, or even as a whole class that's fine; this isn't assessed.
+
+```{r, echo=F}
+ggplot() +
+  geom_sf(data=no2_2013_crop, aes(fill = PostLAEI2013_2013_NO2), colour=NA) + 
+  scale_fill_distiller(palette = "Spectral", name = 'NO2') +
+  geom_sf(data=route, colour = 'black') +
+  geom_sf(data=route_points, colour = 'black', size=4) +
+  ggtitle('Exposure map between FWB and Brewdog, Soho') +
+  theme(panel.background = element_blank(),
+        panel.border     = element_rect(colour='black', fill=NA),
+        axis.text        = element_blank(),
+        axis.ticks       = element_blank(),
+        legend.position  = c(0.1,0.2),
+        legend.box.background = element_rect(colour = "black"),
+        plot.title = element_text(hjust = 0.5))
+```
+
+## THE END
