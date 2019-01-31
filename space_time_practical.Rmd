@@ -1,0 +1,16 @@
+---
+title: "Space-time practical"
+output: html_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_file ="space_time_practical.html") }) 
+---
+
+In personal monitoring campaigns data often needs to be combined from multiple measurement devices into one consolidated dataset before it can be analysed. In today's practical we are going to combine some simulated data from:
+
+* A sidepak (measures PM2.5)
+* A GPS device (measures location)
+* A digital diary (user records current activity)
+
+Once we have combined them we will make some graphs to see what the data shows, and a short animation showing the persons movement and exposure.
+
+## Data import & linking
