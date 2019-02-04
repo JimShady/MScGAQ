@@ -5,27 +5,171 @@ knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_file ="space_time_practical.html") }) 
 ---
 
-```{r}
+## Introduction
 
-library(tidyverse)
-library(sf, quietly = T)
+In personal monitoring campaigns data often needs to be combined from multiple measurement devices into one consolidated dataset before it can be analysed. In today's practical we are going to combine some data from 'person 81' of the DeMIST study that Shannon Lim is working on at the moment:
+
+* A microaeth (measures black carbon)
+* A GPS device (measures location)
+
+Once we have combined them we will make a table summarising the results, a graphs to visualise it, and a short animated GIF showing the persons movement and exposure.
+
+## Set-up
+
+```{r, warning=FALSE, message=FALSE}
+rm(list = ls())
+
+library(tidyverse,  quietly = T)
+library(sf,         quietly = T)
+library(lubridate,  quietly = T)
+library(devtools,   quietly = T)
+library(gganimate,  quietly = T)
+library(gifski,     quietly = T)
+library(transformr, quietly= T)
 
 ```
 
-In personal monitoring campaigns data often needs to be combined from multiple measurement devices into one consolidated dataset before it can be analysed. In today's practical we are going to combine some simulated data from:
+## Method
 
-* A sidepak (measures PM2.5)
-* A GPS device (measures location)
-* A digital diary (user records current activity)
-
-Once we have combined them we will make a table summarising the results, a graphs to visualise it, and a short animated GIF showing the persons movement and exposure in each transport mode.
-
-## Data import & linking
+### Data import
 
 First we import the PM2.5 data from the sidepak.
 
+```{r, warning=FALSE, message=FALSE}
+
+black_carbon_data   <- read_csv('data/black_carbon.csv')
+
+head(black_carbon_data)
+
+```
+
+Then we import the location data from the GPS
+
+```{r, warning=FALSE, message=FALSE}
+
+location_data <- read_csv('data/gps.csv')
+
+head(location_data)
+
+```
+
+### Data processing
+
+Note that under the column headings for both the `black_carbon_data` and the `location_data`, that the column wih the date and time in has been impored as `chr` which stands for `character`. It basically means that the data type of this column has been set to be text. Actually, we want it to be a date and time data type (known as `POSIXct` in R). Spend a few minutes [googling](www.google.co.uk) what POSIXct is, read some of the results, and make sure you understand what 'the epoch' is in relation to POSIXct. Submit a sentence here with your understanding of what the epoch is: [submit your answer here](URL HERE)
+
+Once you have done that, we are going to need to tell R that the data that it thinks is text, is actually POSIXct data. First we'll do the `black_carbon_data`.
+
+```{r, warning=FALSE, message=FALSE}
+
+black_carbon_data$date <- as.POSIXct(black_carbon_data$date, format = '%d/%m/%Y %H:%M')
+
+```
+
+Note the bit of the text above (`format = '%d/%m/%Y %H:%M'`) which tells R the format of the date and time that has been used. By telling R this, it allows it to understand that the text is actually date and time, and converts it to a POSIXct format. We can check it has worked by doing something like this
+
+```{r, warning=FALSE, message=FALSE}
+
+class(black_carbon_data$date)
+
+```
+
+The `location_data` has the date and time formatted a little differently. Can you figure out how to sort it out? It'll be something like the below. [Submit your answer in this form.](form here).
+
+```{r, eval=F}
+
+location_data$date    <- as.POSIXct(location_data$date, format = 'SOMETHING IN HERE')
+
+```
+
+```{r, echo=F}
+location_data$date    <- as.POSIXct(location_data$date, format = '%y-%m-%d %H:%M')
+```
+
+Our data is now ready to be joined together. As I've said before, there are many ways of doing things in R. I like to use the `dplyr` package to join data together. The code to do so is like this:
+
+```{r, warning=FALSE, message=FALSE}
+
+exposure_dataset     <- left_join(location_data, black_carbon_data, by = c("date" = "date"))
+
+head(exposure_dataset)
+
+```
+
+It's odd that there is no latitude and longitude data shown there. Perhaps it's just the top of the file that is empty? Maybe the GPS was only turned on a few minutes after the microaeth? Figure out how to count how many rows of the data _do_ have GPS data ([google is your friend](https://www.google.com/search?q=count+nas+in+column+r&rlz=1C1GGRV_enGB803GB803&oq=count+nas+in+column+r)). Once you've done that, [submit your answer here](FORM HERE)
+
+We can now remove the data we don't need, as it's been combined into a new dataset called `exposure_dataset`.
+
+```{r, warning=FALSE, message=FALSE}
+rm(black_carbon_data)
+rm(location_data)
+```
+
+Finally, we want to turn this data into a spatial dataset that can be plotted on a map.
+
+```{r, warning=FALSE, message=FALSE}
+exposure_dataset <- st_as_sf(exposure_dataset, coords = c('longitude', 'latitude'), crs = 4326, na.fail=F)
+```
+
+## Results
+
+### Exposure graph
+
+We now use ggplot2 to plot the `black_carbon` exposure data out.
+
+```{r, warning=FALSE, message=FALSE}
+
+ggplot(exposure_dataset, aes(date, black_carbon)) + 
+  geom_path() +
+  ggtitle('DeMIST participant 81')
+
+```
+
+As we can see, it looks like there has been some instrument error during the campaign. A black carbon measurement of -50, and another of of 90 look like errors to me. Can you figure out how to remove from the dataset all data that is under 25 and over 50, and then plot the data again? I suggest you use the `filter` command from the `dplyr` package. An example of how to use it is `starwars <- filter(starwars, hair_color == "none" & eye_color == "black")`. If you manage it, you will end up with a graph that looks like this:
+
+```{r, echo=F,warning=FALSE, message=FALSE}
+ggplot(filter(exposure_dataset, black_carbon > -25 & black_carbon < 50), aes(date, black_carbon)) + 
+  geom_path() +
+  ggtitle('DeMIST participant 81')
+```
+
+### Table
+
+Let's make a summary table of the particopants mean exposure per hour of the day (combining all the days together). To do that we need to tell R that we are only interested in the hour part of the POSIXct column, and then aggregate by it.
+
 ```{r}
 
-pm25_data   <- 
+aggregate(data = exposure_dataset, black_carbon ~ hour(date), FUN=mean)
+
+```
+
+### Map
+
+We can make a basic map like this (similar to how we did in the [exposure practical](https://jimshady.github.io/MScGAQ/exposure_practical.html) last week):
+
+```{r}
+
+ggplot(exposure_dataset) +
+  geom_sf(aes(colour = black_carbon), size=1, alpha = 0.4) +
+  scale_colour_distiller(palette = "Spectral") +
+  theme(panel.background = element_rect(fill = 'black'),
+        panel.grid       = element_blank())
+
+```
+
+But let's make an animated map instead. There's a new package called `gganimate` which makes this quite easy. Note the last few lines.
+
+```{r, fig.height=5, fig.width=3, fig.align = "center"}
+
+my_animation <- ggplot(exposure_dataset) +
+                 geom_sf(aes(colour = black_carbon, size = black_carbon), show.legend = F) +
+                 labs(title = 'Date & time: {frame_time}') +
+                 scale_colour_distiller(palette = "Spectral") +
+                 theme(panel.background = element_rect(fill = 'black'),
+                        panel.grid       = element_blank()) +
+                 transition_time(date) +
+                 ease_aes('linear')
+
+animate(my_animation, fps = 10, duration = 30,
+         renderer = gifski_renderer(file = 'my_animation.gif', loop = TRUE))
 
 ```
