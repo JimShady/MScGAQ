@@ -101,7 +101,7 @@ proj4string(no2_2013)   <- CRS(ukgrid)
 
 #### Plot air quality
 
-You can plot your `no2_2013` raster object using the `plot()` command. As with many things in R, there are often multiple commands to do similar things, each achieving slightly different results. For example we could also have used the `levelplot(no2_2013)` command from the `rasterVis` package to view the data - ([Here's how it would have looked]()). Much of how to do things in R is personal preference.
+You can plot your `no2_2013` raster object using the `plot()` command. As with many things in R, there are often multiple commands to do similar things, each achieving slightly different results. For example we could also have used the `levelplot(no2_2013)` command from the `rasterVis` package to view the data - ([Here's how it would have looked](https://github.com/JimShady/MScGAQ/blob/master/levelplot_example.png)). Much of how to do things in R is personal preference.
 
 ```{r, warning=FALSE, message=FALSE}
 plot(no2_2013)
@@ -122,7 +122,7 @@ plot(st_geometry(st_transform(route,27700)), add=T) # transform the route to CRS
 
 We have to decide how our exposure is going to be calculated. Do we want the average concentration along the route? The maximum? The minimum? The London Hybrid Exposure Model has temporal scale of one minute, so we'll calculate it on a minute by minute basis, then we can decide after whether to take the mean or some other measure.
 
-If we want to calculate exposure per minute, we are going to need to split the line that represents our journey into a point per minute (`round(route$duration/60,0)`). We also need to change our `route` into the same CRS as the air quality `no2_2013` data.
+If we want to calculate exposure per minute, we are going to need to split the line that represents our journey into a point per minute. We also need to change our `route` into the same CRS as the air quality `no2_2013` data.
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -133,7 +133,9 @@ route_points          <- st_line_sample(route,
                                 type = 'regular')                       # sample regular points along the route
 ```
 
-Check you understand what the above commands have done before continuining.
+Look up the `st_line_sample()` function of the `sf` package. What other `type` option is available? [Put your answer into the form](https://goo.gl/forms/ndJZ1hAgCviAPgsG3).
+
+Now we will turn the multipoint object into a points object (don't worry too much about what this means for now), and we will add the minutes as a field of the data.
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -155,7 +157,7 @@ ggplot() +
 
 #### Extract concentrations
 
-For each point of the route we are now going to find out the NO2 concentration at that location using the `extract()` function from the `raster` library. We need to convert the points from a sf type to a sp type 'on the fly', as the `extract()` function does not work with sf objects yet.
+For each point of the route we are now going to find out the NO2 concentration at that location using the `extract()` function from the `raster` library. We will convert the points from a sf type to a sp type 'on the fly', as the `extract()` function does not work with sf objects yet.
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -164,13 +166,13 @@ route_points$no2 <- raster::extract(no2_2013,
 
 ```
 
-The data now looks like this - nice!
+The data now looks like this - great!
 
 ```{r, warning=FALSE, message=FALSE}
 route_points
 ```
 
-At this point we could make a graph of the exposure during the journey
+At this point we could make a graph of the exposure during the journey like this.
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -186,7 +188,7 @@ Finally, the concentrations we have extracted from the air quality model are rep
 
 ```{r, warning=FALSE, message=FALSE}
 
-route_points$incar_no2 <- route_points$no2 * 0.77
+route_points$incar_no2 <- route_points$no2 * 0.77 # make a new variable called 'incar_no2' and put the no2 value * 0.77 into it.
 
 ```
 
@@ -194,7 +196,7 @@ If you were going to look at different transport modes, you would need to look f
 
 ## Make a map
 
-Earlier we make a quick map of NO2 concentrations in London, and plotted the route on it. Let's try and make an exposure map now, using the ``ggplot2` package again. We will plot out the NO2 data for our area, and put the points on top of that.
+Earlier we make a quick map of NO2 concentrations in London, and plotted the route on it. Let's try and make an exposure map now, using the `ggplot2` package again. We will plot out the NO2 data for our area, and put the points on top of that.
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -213,7 +215,7 @@ ggplot() +
   
 ```
 
-Note the line ` theme(panel.background = element_rect()) ` in the code above. There are various options that you can use here to change the look and feel of your map. You should use the [ggplot2 reference manual](https://ggplot2.tidyverse.org/reference/theme.html) to find more details. We're not expecting you to be an expert at any of this during the module, but some idea would be good.
+Note the line ` theme(panel.background = element_rect()) ` in the code above. There are various options that you can use here to change the look and feel of your map. You should use the [ggplot2 reference manual](https://ggplot2.tidyverse.org/reference/theme.html) and search Google to find more details. We're not expecting you to be an expert at any of this during the module, but some idea would be good.
 
 ## Task / homework
 
