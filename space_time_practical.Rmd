@@ -7,12 +7,12 @@ knit: (function(inputFile, encoding) {
 
 ## Introduction
 
-In personal monitoring campaigns data often needs to be combined from multiple measurement devices into one consolidated dataset before it can be analysed. In today's practical we are going to combine some data from 'person 81' of the DeMIST study that Shannon Lim is working on at the moment:
+In personal monitoring campaigns data often needs to be combined from multiple measurement devices into one consolidated dataset before it can be analysed. In today's practical we are going to combine some data from 'person 81' of the DeMIST study that Shannon Lim is working on at the moment. The datasets are from:
 
 * A microaeth (measures black carbon)
 * A GPS device (measures location)
 
-Once we have combined them we will make a table summarising the results, a graphs to visualise it, and a short animated GIF showing the persons movement and exposure.
+Once we have combined them we will make a table summarising the results, graphs to visualise it, and a short animated GIF showing the persons movement and exposure.
 
 ## Set-up
 
@@ -37,7 +37,7 @@ First we import the PM2.5 data from the sidepak.
 
 ```{r, warning=FALSE, message=FALSE}
 
-black_carbon_data   <- read_csv('data/black_carbon.csv')
+black_carbon_data   <- read_csv('https://raw.githubusercontent.com/JimShady/MScGAQ/master/data/black_carbon.csv')
 
 head(black_carbon_data)
 
@@ -47,7 +47,7 @@ Then we import the location data from the GPS
 
 ```{r, warning=FALSE, message=FALSE}
 
-location_data <- read_csv('data/gps.csv')
+location_data <- read_csv('https://raw.githubusercontent.com/JimShady/MScGAQ/master/data/gps.csv')
 
 head(location_data)
 
@@ -138,7 +138,9 @@ Let's make a summary table of the particopants mean exposure per hour of the day
 
 ```{r}
 
-aggregate(data = exposure_dataset, black_carbon ~ hour(date), FUN=mean)
+hourly_summary <- aggregate(data = exposure_dataset, black_carbon ~ hour(date), FUN=mean)
+
+hourly_summary
 
 ```
 
@@ -156,7 +158,11 @@ ggplot(exposure_dataset) +
 
 ```
 
-But let's make an animated map instead. There's a new package called `gganimate` which makes this quite easy. Note the last few lines.
+It's nice to see the data on a map, but this doesn't really tell us very much other than the study participant did alot of driving. How about using the `filter` command to only plot the concentrations that are greater than 5 perhaps? See if you can figure out how to do that.
+
+### Animated map
+
+Let's see if we can make an animated map now. There's a new package called `gganimate` which makes this quite easy. Note the last few lines of the code below
 
 ```{r, fig.height=5, fig.width=3, fig.align = "center"}
 
@@ -166,10 +172,13 @@ my_animation <- ggplot(exposure_dataset) +
                  scale_colour_distiller(palette = "Spectral") +
                  theme(panel.background = element_rect(fill = 'black'),
                         panel.grid       = element_blank()) +
-                 transition_time(date) +
-                 ease_aes('linear')
+                 transition_time(date) +  # Up until here it was normal ggplot2 code,
+                 ease_aes('linear')       # but this is the animation bit
 
-animate(my_animation, fps = 10, duration = 30,
-         renderer = gifski_renderer(file = 'my_animation.gif', loop = TRUE))
+animate(my_animation, fps = 10, duration = 30, renderer = gifski_renderer(file = 'my_animation.gif', loop = TRUE)) # output our animation
 
 ```
+
+Although this animated map looks really cool, it doesn't really add to our understanding of the data. It is presented here more as a proof of concept. With some tweaking you could for example have the points coloured white, except when the concentrations were above 10, and then they turn red? A map of the UK could also be put in the background? Being able to communicate your data and 'bring it to life' can be a great way to engage with non-technical audiences also.
+
+## The End.
