@@ -55,7 +55,7 @@ head(location_data)
 
 ### Data processing
 
-Note that under the column headings for both the `black_carbon_data` and the `location_data`, that the column wih the date and time in has been impored as `chr` which stands for `character`. It basically means that the data type of this column has been set to be text. Actually, we want it to be a date and time data type (known as `POSIXct` in R). Spend a few minutes [googling](www.google.co.uk) what POSIXct is, read some of the results, and make sure you understand what 'the epoch' is in relation to POSIXct. Submit a sentence here with your understanding of what the epoch is: [submit your answer here](URL HERE)
+Note that under the column headings for both the `black_carbon_data` and the `location_data`, that the column wih the date and time in has been impored as `chr` which stands for `character`. It basically means that the data type of this column has been set to be text. Actually, we want it to be a date and time data type (known as `POSIXct` in R). Spend a few minutes [googling](www.google.co.uk) what POSIXct is, read some of the results, and make sure you understand what 'the epoch' is in relation to POSIXct. Once you have done that, [write a sentence in this form with your answer](https://goo.gl/forms/V1nyofjVHoDCOn0z2)
 
 Once you have done that, we are going to need to tell R that the data that it thinks is text, is actually POSIXct data. First we'll do the `black_carbon_data`.
 
@@ -73,7 +73,7 @@ class(black_carbon_data$date)
 
 ```
 
-The `location_data` has the date and time formatted a little differently. Can you figure out how to sort it out? It'll be something like the below. [Submit your answer in this form.](form here).
+The `location_data` has the date and time formatted a little differently. Can you figure out how to sort it out? It'll be something like the below. [Write your answer into the form ](https://goo.gl/forms/V1nyofjVHoDCOn0z2).
 
 ```{r, eval=F}
 
@@ -95,7 +95,7 @@ head(exposure_dataset)
 
 ```
 
-It's odd that there is no latitude and longitude data shown there. Perhaps it's just the top of the file that is empty? Maybe the GPS was only turned on a few minutes after the microaeth? Figure out how to count how many rows of the data _do_ have GPS data ([google is your friend](https://www.google.com/search?q=count+nas+in+column+r&rlz=1C1GGRV_enGB803GB803&oq=count+nas+in+column+r)). Once you've done that, [submit your answer here](FORM HERE)
+It's odd that there is no latitude and longitude data shown there. Perhaps it's just the top of the file that is empty? Maybe the GPS was only turned on a few minutes after the microaeth? Figure out how to count how many rows of the data _do_ have GPS data ([google is your friend](https://www.google.com/search?q=count+nas+in+column+r&rlz=1C1GGRV_enGB803GB803&oq=count+nas+in+column+r)). Once you've done that, [write your answer into the form, and push submit](https://goo.gl/forms/V1nyofjVHoDCOn0z2)
 
 We can now remove the data we don't need, as it's been combined into a new dataset called `exposure_dataset`.
 
@@ -124,10 +124,10 @@ ggplot(exposure_dataset, aes(date, black_carbon)) +
 
 ```
 
-As we can see, it looks like there has been some instrument error during the campaign. A black carbon measurement of -50, and another of of 90 look like errors to me. Can you figure out how to remove from the dataset all data that is under 25 and over 50, and then plot the data again? I suggest you use the `filter` command from the `dplyr` package. An example of how to use it is `starwars <- filter(starwars, hair_color == "none" & eye_color == "black")`. If you manage it, you will end up with a graph that looks like this:
+As we can see, it looks like there has been some instrument error during the campaign. A black carbon measurement of -50, and another of of 90 look like errors to me. Can you figure out how to recreate the plot, but without data that is under -5, and over 25 I suggest you use the `filter` command from the `dplyr` package. An example of how to use it is `filter(starwars, hair_color == "none" & eye_color == "black")`. If you manage it, you will end up with a graph that looks like this:
 
 ```{r, echo=F,warning=FALSE, message=FALSE}
-ggplot(filter(exposure_dataset, black_carbon > -25 & black_carbon < 50), aes(date, black_carbon)) + 
+ggplot(filter(exposure_dataset, black_carbon > -5 & black_carbon < 25), aes(date, black_carbon)) + 
   geom_path() +
   ggtitle('DeMIST participant 81')
 ```
@@ -138,7 +138,9 @@ Let's make a summary table of the particopants mean exposure per hour of the day
 
 ```{r}
 
-hourly_summary <- aggregate(data = exposure_dataset, black_carbon ~ hour(date), FUN=mean)
+hourly_summary <- aggregate(data = exposure_dataset,
+                            black_carbon ~ hour(date),
+                            FUN=mean)
 
 hourly_summary
 

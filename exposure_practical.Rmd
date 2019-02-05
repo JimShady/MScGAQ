@@ -9,11 +9,13 @@ This code will take you step-by-step through undertaking a simple exposure asses
 
 You should open RStudio and copy+paste the code chunks (grey boxes of code) from below into your own script as you go through the pratical. Feel free to make changes if you want to - it's the best way to learn. I suggest you make notes in your own script as you go to refer to later. You can make notes in R by putting a hashtag before them.
 
+At a few places during the practical, there are some questions for you to answer, and a form for you to put them in.
+
 At the end of the document there is a short task for you to try on your own; once you have done it please send your result and the code you used to make it, to [james.d.smith@kcl.ac.uk](mailto:james.d.smith@kcl.ac.uk). This is not assessed, but I will send you back some feedback and tips on it.
 
 ## Set-up
 
-Start with a clean R environment, and load some libraries (sometimes called 'packages') that we are going to need. If a library doesn't load ('activate'), it's probably because you don't have it installed. You can run commands in the Console such as ( `install.packages('raster')`  ) to fix that. You can think of libraries/packages as add-ons that enhance the things R can do.
+Start with a clean R environment, and load some libraries (sometimes called 'packages') that we are going to need. If a library doesn't load ('activate'), it's probably because you don't have it installed. You can run commands in the Console section of R studio such as ( `install.packages('raster')`  ) to fix that. You can think of libraries/packages as add-ons that enhance the things R can do.
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -38,6 +40,7 @@ end      <- c(-0.137143, 51.515080)
 
 ```
 
+What is the latitude and longitude of Greenwich observatory? [Put your answers into this form](https://goo.gl/forms/ndJZ1hAgCviAPgsG3).
 
 #### Calculate the route
 We now use these start and end variables, within a function called `route_osrm()` which is from the `stplanr` R package. This package was developed to allow interaction between R, and the OpenStreetMap routing system. We can use it to say 'tell me how to get from one location to another'. Only a driving mode is available by default.
@@ -48,7 +51,7 @@ route <- route_osrm(from=start, to=end)  # This gets the route
 route  <- st_as_sf(route)                # Change the route from a 'sp' object to 'sf'.
 ```
 
-If you wanted to explore other transport modes you could look at using the function `route_transportapi_public()` instead of `route_osrm()`. It allows you to add an additional parameter of `mode = "__modehere__` where `__modehere__` is one of  'bus', 'train' or 'tube'. I believe there are some functions within the `stplanr` library that also do walking routing, but you'll need to look at that yourselves.
+If you wanted to explore other transport modes you could look at using the function `route_transportapi_public()` instead of `route_osrm()`. It allows you to add an additional parameter of `mode = "__modehere__` where `__modehere__` is one of  'bus', 'train' or 'tube'. Find the PDF manual for `stplanr`, and the name of the main author. Write your answer [into the form](https://goo.gl/forms/ndJZ1hAgCviAPgsG3).
 
 Once the above code has run, you will have a route between FWB and Brewdog stored as a variable called `route`. If you type `route` into your R console you should see something like this. Have a look at what it shows, and what each field is telling you.
 
@@ -71,9 +74,9 @@ ggplot() +
 
 #### Import air quality
 
-No that we have a route between the two locations we need some air quality data. In 2016 the modelling team undertook a large project for the [Greater London Authority](https://en.wikipedia.org/wiki/Greater_London_Authority) (The GLA) to produce maps and data on air quality in London. The outputs are available online for public use, and those are the data we are going to use. [Have a quick read through this webpage before we continue](https://data.london.gov.uk/dataset/london-atmospheric-emissions-inventory-2013).
+Now that we have a route between the two locations we need some air quality data. In 2016 the modelling team undertook a large project for the [Greater London Authority](https://en.wikipedia.org/wiki/Greater_London_Authority) (The GLA) to produce maps and data on air quality in London. The outputs are available online for public use, and those are the data we are going to use. [Have a quick read through this webpage before we continue](https://data.london.gov.uk/dataset/london-atmospheric-emissions-inventory-2013). What are the years that the LAEI covers? [Write your answers into the form](https://goo.gl/forms/ndJZ1hAgCviAPgsG3).
 
-Once you have looked through the site, download the ZIP file called '4.1. Concentrations LAEI 2013 Update', extract the folder, and put the folder and files somewhere sensible on your computer. Now import the filed called `PostLAEI2013_2013_NO2.asc` like this (You will need to change the path so that it is specific to your computer).
+Once you have looked through the site, download the ZIP file called `4.1. Concentrations LAEI 2013 Update`, extract the folder, and put the folder and files somewhere sensible on your computer. Now import the filed called `PostLAEI2013_2013_NO2.asc` like this (You will need to change the path so that it is specific to your computer).
 
 ```{r, warning=FALSE, message=FALSE}
 no2_2013     <- raster('C:/Users/stwb3498/Downloads/4.1. Concentrations LAEI 2013 Update/4.1. Concentrations LAEI 2013 Update/2013/ASCII/PostLAEI2013_2013_NO2.asc')
@@ -98,7 +101,7 @@ proj4string(no2_2013)   <- CRS(ukgrid)
 
 #### Plot air quality
 
-You can plot your `no2_2013` raster object using the `plot()` command. As with many things in R, there are often multiple commands to do similar things, each achieving slightly different results. For example we could also have used the `rasterVis` package to view the data. Much of how to do things in R is personal preference.
+You can plot your `no2_2013` raster object using the `plot()` command. As with many things in R, there are often multiple commands to do similar things, each achieving slightly different results. For example we could also have used the `levelplot(no2_2013)` command from the `rasterVis` package to view the data - ([Here's how it would have looked]()). Much of how to do things in R is personal preference.
 
 ```{r, warning=FALSE, message=FALSE}
 plot(no2_2013)
@@ -196,6 +199,7 @@ Earlier we make a quick map of NO2 concentrations in London, and plotted the rou
 ```{r, warning=FALSE, message=FALSE}
 
 no2_2013_crop     <- crop(no2_2013, extent(route) + 100) # For our map we only need the NO2 data for a small area, not the whole of London
+# If you are on a Mac you might need to do this command instead: no2_2013_crop <- crop(no2_2013, extent(as(route, 'Spatial'))+100)
 
 no2_2013_crop     <- rasterToPolygons(no2_2013_crop)      # Converting the raster file to polygons so that we can use this data with the ggplot2 library
 
