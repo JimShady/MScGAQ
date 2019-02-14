@@ -181,6 +181,8 @@ animate(my_animation, fps = 10, duration = 30, renderer = gifski_renderer(file =
 
 ```
 
-Although this animated map looks really cool, it doesn't really add to our understanding of the data. It is presented here more as a proof of concept. With some tweaking you could for example have the points coloured white, except when the concentrations were above 10, and then they turn red? A map of the UK could also be put in the background? Being able to communicate your data and 'bring it to life' can be a great way to engage with non-technical audiences also.
+Although this animated map looks really cool, it doesn't really add to our understanding of the data. It is presented here more as a proof of concept. With some tweaking you could for example have the points coloured white, except when the concentrations were above 10, and then they turn red? A map of the UK could also be put in the background? Being able to communicate your data and 'bring it to life' can be a great way to engage with non-technical audiences also. Here's one of air quality while I was riding the Victoria Line.
+
+![Air quality on the Victoria line](https://github.com/JimShady/pm25_tube_paper/raw/master/outputs/graph_animation.gif)
 
 ## The End.
